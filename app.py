@@ -15,9 +15,7 @@ openai.api_key = 'openai-key'
 selected_items = []
 dag_data = []
 
-def extract_topics_from_document(filepath):
-    loader = PyPDFLoader(filepath)
-    pages = loader.load()
+def extract_topics_from_document(pages):
     for page in pages:
         document_text = page.page_content
     
@@ -34,6 +32,22 @@ def extract_topics_from_document(filepath):
     topics = response.choices[0].message['content'].strip().split('\n')
     return [{"id": topic} for topic in topics if topic]  # Format as list of topics
 
+def write_to_vectordb (pages):
+    text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size = 1500,
+    chunk_overlap = 150
+    )
+    splits = text_splitter.split_documents(pages)
+
+    persist_directory = 'docs/chroma/' #it will create a docs/chroma each time running it
+    embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    vectordb = Chroma.from_documents(
+        documents=splits,
+        embedding=embedding_model,
+        persist_directory=persist_directory
+    )
+    print(vectordb._collection.count())
+
 
 @app.route('/')
 def index():
@@ -45,12 +59,18 @@ def upload_file():
     if file:
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        print(filepath)
         file.save(filepath)
 
-        # Generate DAG topics by extracting from the document
+        # load file into pages
+        loader = PyPDFLoader(filepath)
+        pages = loader.load()
+        
+        # do vector embedding and store into database
+        write_to_vectordb(pages)
+
+        # extract text from the book
         global dag_data
-        dag_data = extract_topics_from_document(filepath)
+        dag_data = extract_topics_from_document(pages)
 
         return jsonify({"status": "success", "dag": dag_data}), 200
     return jsonify({"status": "error"}), 400

@@ -3,86 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>DAG Learning App</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script>
-        let dagData = [];
-
-        document.addEventListener('DOMContentLoaded', () => {
-            // Handle file upload form submission
-            document.getElementById('upload-form').onsubmit = (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-
-                fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === "success") {
-                        dagData = data.dag;
-                        displayDAGChoices();
-                    }
-                });
-            };
-        });
-
-        // Display DAG topics as choice buttons (checkboxes)
-        function displayDAGChoices() {
-            const container = document.getElementById("dag-container");
-            container.innerHTML = '';
-            dagData.forEach(node => {
-                const label = document.createElement("label");
-                label.innerText = node.id;
-
-                const checkbox = document.createElement("input");
-                checkbox.type = "checkbox";
-                checkbox.name = "dagChoice";
-                checkbox.value = node.id;
-
-                label.prepend(checkbox);
-                container.appendChild(label);
-                container.appendChild(document.createElement("br"));
-            });
-
-            // Show the submit button after DAG is loaded
-            document.getElementById("submit-dag-choice").style.display = "inline";
-        }
-
-        // Submit selected items
-        function submitSelectedItems() {
-            const selectedItems = Array.from(document.querySelectorAll("input[name='dagChoice']:checked"))
-                                        .map(checkbox => checkbox.value);
-
-            selectedItems.forEach(itemName => {
-                fetch('/select_item', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ item_name: itemName })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === "success") {
-                        alert(`You selected: ${data.item_name}`);
-                    }
-                });
-            });
-        }
-
-        // Handle question submission
-        function askQuestion() {
-            const question = document.getElementById("question-input").value;
-            fetch('/ask_question', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question })
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("answer-output").innerText = data.answer;
-            });
-        }
-    </script>
     <style>
         #dag-container label {
             cursor: pointer;
@@ -102,7 +22,7 @@
         <button type="submit">Upload Book</button>
     </form>
     
-    <h2>DAG Topics</h2>
+    <h2>Topics</h2>
     <div id="dag-container"></div>
     <button id="submit-dag-choice" style="display: none;" onclick="submitSelectedItems()">Submit Selected Topics</button>
 
